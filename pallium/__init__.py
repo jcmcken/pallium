@@ -21,15 +21,6 @@ def _generate_raw_data(host='localhost', port=DEFAULT_GMETAD_PORT):
     s.shutdown(socket.SHUT_RDWR)
     s.close()
 
-TEST_TREE = [ "or", 
-    "some_metric>=10",
-    [ "and", 
-        "some_metric2==bleh",
-        "some_metric3<=432",
-        "some_metric4==4.0"
-    ]
-]
-
 COMPARATORS = [ '==', '>=', '<=', '<', '>' ]
 OPERATORS = [ "or", "and" ]
 
@@ -78,7 +69,6 @@ def walk(tree, evaluator=lambda x: evaluate):
         stack.append(result)
     final_result = apply_operator(op, stack)
     return final_result
-
 
 class GangliaContentHandler(sax.ContentHandler):
     def __init__(self):

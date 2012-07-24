@@ -1,0 +1,9 @@
+[ "or", 
+    "some_metric>=10",
+    [ "and", 
+        "some_metric2==bleh",
+        "some_metric3<=432",
+        "some_metric4==4.0"
+    ]
+]
+
