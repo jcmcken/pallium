@@ -4,21 +4,22 @@ __author__ = 'Jon McKenzie'
 import socket
 import xml.sax as sax
 import re
+import optparse
+from pprint import pprint
 
 # Gmetad settings
 DEFAULT_GMETAD_PORT = 8651
 
 # For alert condition expressions
 COMPARATORS = [ '==', '>=', '<=', '<', '>' ]
-OPERATORS = [ "or", "and" ]
 
 # Regexs for validating a metric expression
 _OP_LIST = "|".join(["(%s)"] * len(COMPARATORS))
-STR_RE_OPERATOR = "(" + _OP_LIST % tuple(COMPARATORS) + ")"
-STR_RE_VAL = "[\w\.]+"
-STR_RE_KEY = "\w+"
-STR_RE_EXPRESSION = "^" + STR_RE_KEY + STR_RE_OPERATOR + STR_RE_VAL + "$"
-RE_EXPRESSION = re.compile(STR_RE_EXPRESSION)
+_STR_RE_OPERATOR = "(" + _OP_LIST % tuple(COMPARATORS) + ")"
+_STR_RE_VAL = "[\w\.]+"
+_STR_RE_KEY = "\w+"
+_STR_RE_EXPRESSION = "^" + _STR_RE_KEY + _STR_RE_OPERATOR + _STR_RE_VAL + "$"
+_RE_EXPRESSION = re.compile(_STR_RE_EXPRESSION)
 
 def _generate_raw_data(host='localhost', port=DEFAULT_GMETAD_PORT):
     """
@@ -38,117 +39,255 @@ def _generate_raw_data(host='localhost', port=DEFAULT_GMETAD_PORT):
     s.shutdown(socket.SHUT_RDWR)
     s.close()
 
-def is_boolean_tree(data):
-    """
-    Decide if ``data`` (a list) is a valid boolean expression tree. These checks
-    simply validate the general structure of ``data``.
-    """
-    return isinstance(data, list) and data[0] in OPERATORS and \
-           len(data) >= 2
+class BooleanTree(object):
 
-def is_valid_metric(expr):
-    """
-    Validate that ``expr`` is a valid metric expression.
+    # operator implementations
+    OPERATORS = {
+      "or": lambda x,y: x or y,
+      "and": lambda x,y: x and y
+    }
 
-    Metric expressions are of the form::
-
-        <metric_name><comparator><value>
-
-    ...where:
+    def walk(self, tree):
+        """
+        Walk the boolean tree ``tree`` and evaluate each sub-tree and each metric
+        expression, returning a single boolean result.
     
-    * ``<metric_name>`` is a metric as reported by Ganglia.
-     
-    * ``<comparator>`` is one of ``<``, ``>``, ``<=``, ``>=``, ``==`` or 
-      ``!=``,
+        Trees are simply lists in a "Polish notation"-type format. This means that
+        the operator comes first in the list and all operands follow.
+    
+        Valid operators are ``or`` and ``and``.
+    
+        For example, a simple tree looks like this::
+    
+            [ "or", "some_expr1==2.0", "some_expr2==test" ]
+    
+        This expression translates to "``some_expr1 == 2.0`` or ``some_expr2 == test``".
+    
+        Trees may be nested arbitrarily. For example::
+    
+            [ "and",
+                [ "or", 
+                    [ "some_expr1==2.0", "some_expr2==test" ]
+                ],
+                "some_expr3!=2241.3"
+            ]
+    
+        This tree would first evaluate the tree given in the previous example. Next, it would evaluate
+        whether ``some_expr3 != 2241.3``. Finally, it would take these two results and check if they
+        are both true.
+    
+        """
+        if not self.is_boolean_tree(tree):
+            raise Exception# invalid tree
+    
+        op, operands = tree[0], tree[1:]
+        stack = []
+    
+        for operand in operands:
+            if self.is_boolean_tree(operand):
+                result = self.walk(operand)
+            elif is_valid_node(operand):
+                result = self.evaluate_node(operand)
+            else:
+                raise Exception# not a metric expr or a boolean tree
+            stack.append(result)
+        final_result = self.apply_operator(op, stack)
+        return final_result
 
-    * ``<value>`` is integer-like, float-like, or resembles a simple string.
-    """
-    return bool(RE_EXPRESSION.search(expr))
+    def apply_operator(self, operator, items):
+        """
+        Apply either an ``and`` operation or an ``or`` operation to the list of 
+        booleans in ``items``.
+        """
+        op_func = self.OPERATORS.get(op, None)
 
-def apply_operator(op, data):
-    """
-    Apply either an ``and`` operation or an ``or`` operation to the list of 
-    booleans in ``data``.
-    """
-    if op == 'or':
-        reducer = lambda x,y: x or y
-    elif op == 'and':
-        reducer = lambda x,y: x and y
-    else:
-        raise # invalid operator
-    return reduce(reducer, data)
+        if op_func is None:
+            raise Exception #invalid op
 
-def evaluate(expr):
-    """
-    Evaluate the metric expression ``expr`` to either ``True`` or ``False``
-    """
-    import random
-    return random.choice([True, False])
+        return reduce(op_func, items)
 
-def walk(tree, evaluator=lambda x: evaluate):
-    """
-    Walk the boolean tree ``tree`` and evaluate each sub-tree and each metric
-    expression, returning a single boolean result.
+    def evaluate_node(self, node):
+        raise NotImplementedError
 
-    Trees are simply lists in a "Polish notation"-type format. This means that
-    the operator comes first in the list and all operands follow.
+    def is_boolean_tree(self, tree):
+        """
+        Decide if ``tree`` (a list) is a valid boolean expression tree. These checks
+        simply validate the general structure of ``tree``.
+        """
+        return isinstance(tree, list) and tree[0] in self.OPERATORS and \
+               len(tree) >= 2
 
-    For example, a simple tree looks like this::
+    def is_valid_node(self, node):
+        raise NotImplementedError
 
-        [ "or", "some_expr1==2.0", "some_expr2==test" ]
+class GangliaBooleanTree(BooleanTree):
+    def evaluate_node(self, node):
+        import random
+        return random.choice([True, False])
 
-    This expression translates to "``some_expr1 == 2.0`` or ``some_expr2 == test``".
-
-    Trees may be nested arbitrarily. For example::
-
-        [ "and",
-            [ "or", 
-                [ "some_expr1==2.0", "some_expr2==test" ]
-            ],
-            "some_expr3!=2241.3"
-        ]
-
-    This tree would first evaluate the tree given in the previous example. Next, it would evaluate
-    whether ``some_expr3 != 2241.3``. Finally, it would take these two results and check if they
-    are both true.
-
-    """
-    if not is_boolean_tree(tree):
-        raise Exception# invalid tree
-
-    op, operands = tree[0], tree[1:]
-    stack = []
-
-    for operand in operands:
-        if is_boolean_tree(operand):
-            result = walk(operand)
-        elif is_valid_metric(operand):
-            result = evaluate(operand)
-        else:
-            raise Exception# not a metric expr or a boolean tree
-        stack.append(result)
-    final_result = apply_operator(op, stack)
-    return final_result
+    def is_valid_node(self, node):
+        """
+        Validate that ``node`` is a valid metric expression.
+    
+        Metric expressions are of the form::
+    
+            <metric_name><comparator><value>
+    
+        ...where:
+        
+        * ``<metric_name>`` is a metric as reported by Ganglia.
+         
+        * ``<comparator>`` is one of ``<``, ``>``, ``<=``, ``>=``, ``==`` or 
+          ``!=``,
+    
+        * ``<value>`` is integer-like, float-like, or resembles a simple string.
+        """
+        return bool(_RE_EXPRESSION.search(node))
 
 class GangliaContentHandler(sax.ContentHandler):
-    def __init__(self):
-        sax.ContentHandler.__init__(self)
-        self.tree = {}
-        self.tree['ganglia'] = {}
+    def __init__(self, datastore, grid_expr=".*", cluster_expr=".*", host_expr=".*"):
 
-        self.current_grid = None
-        self.current_cluster = None
+        self.exprs = {
+            'grid': re.compile(grid_expr),
+            'cluster': re.compile(cluster_expr),
+            'host': re.compile(host_expr),
+        }
+
+        self.current = {
+            'grid': None, 'cluster': None, 'host': None 
+        }
+
+        self.skip = {}
+
+        self.data = datastore
+
+        sax.ContentHandler.__init__(self)
+
+    def _eval_re(self, type, text):
+        pat = self.exprs.get(type, None)
+
+        if pat is None:
+            raise ValueError("Invalid regular expression type '%s" % type)
+
+        return bool(pat.search(text))
 
     def startDocument(self):
         print 'started xml parsing'
 
+    def _check_skip(self, type):
+        skip = self.skip.get(type, None)
+        current = self.current.get(type, None)
+
+        if skip is None or current is None:
+            ret = False
+        else:
+            ret = skip == current
+
+        return ret
+
+    def _set_skip(self, type, value):
+        if not self._eval_re(type, value):
+            self.skip[type] = value
+            return True
+        return False
+
     def startElement(self, name, attrs):
-        print
+        print name
+        print self.current
+        # name of entity, if it has one -- valid for GRID, CLUSTER, HOST, METRIC
+        val = attrs.get('NAME', None)
+
+        if name == "GRID":
+            self.current['grid'] = val
+
+            # if grid doesn't match regexp, set skip
+            if self._set_skip('grid', val): return
+
+            self.data.setdefault(val, {})
+
+        elif name == "CLUSTER":
+            self.current['cluster'] = val
+
+            # if cluster doesn't match regexp, set skip
+            if self._set_skip('cluster', val): return
+
+            # skip node if GRID set to skip
+            if self._check_skip('grid'): return
+
+            self.data[self.current['grid']].setdefault(val, {})
+
+        elif name == "HOST":
+            self.current['host'] = val
+
+            # if host doesn't match regexp, set skip
+            if self._set_skip('host', val): return
+
+            # skip node if GRID or CLUSTER set to skip
+            if self._check_skip('grid'): return 
+            if self._check_skip('cluster'): return
+            
+            self.data[self.current['grid']][self.current['cluster']].setdefault(val, {})
+
+        elif name == "METRIC":
+            # skip node if GRID, CLUSTER, or HOST set to skip
+            if self._check_skip('grid'): return 
+            if self._check_skip('cluster'): return
+            if self._check_skip('host'): return
+
+            metric_data = { 
+                'value': attrs['VAL'], 
+                'units': attrs['UNITS'], 
+                'type': attrs['TYPE']
+            } 
+
+            self.data[self.current['grid']][self.current['cluster']]\
+                     [self.current['host']][val] = metric_data
+
+        else: return # ignore everything else
+
+    def endElement(self, name):
+        
+        if name == "GRID":
+            self.current['grid'] = None
+            self.skip['grid'] = None
+        elif name == "CLUSTER":
+            self.current['cluster'] = None
+            self.skip['cluster'] = None
+        elif name == "HOST":
+            self.current['host'] = None
+            self.skip['host'] = None
+
+        else: return # ignore everything else
+
+def create_cli():
+    cli = optparse.OptionParser()
+    cli.add_option('-G', '--grid-regexp')
+    cli.add_option('-C', '--cluster-regexp')
+    cli.add_option('-H', '--host-regexp')
+    return cli
 
 if __name__ == '__main__':
+    cli = create_cli()
+    opts, args = cli.parse_args()
+
+    datastore = {}
+
+    kwargs = {}
+    if opts.grid_regexp:
+        kwargs['grid_expr'] = opts.grid_regexp
+    if opts.cluster_regexp:
+        kwargs['cluster_expr'] = opts.cluster_regexp
+    if opts.host_regexp:
+        kwargs['host_expr'] = opts.host_regexp
+
     parser = sax.make_parser()
-    parser.setContentHandler(GangliaContentHandler())
+    handler = GangliaContentHandler(datastore, **kwargs)
+    parser.setContentHandler(handler)
     
     for chunk in _generate_raw_data():
         parser.feed(chunk)
+
+    pprint(datastore)
+
+    
 
