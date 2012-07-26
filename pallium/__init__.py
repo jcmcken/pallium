@@ -191,71 +191,96 @@ class GangliaContentHandler(sax.ContentHandler):
             return True
         return False
 
+    def _handle_grid(self, attrs):
+        name = attrs['NAME']
+        self.current['grid'] = name
+
+        # if grid doesn't match regexp, set skip
+        if self._set_skip('grid', name): return
+
+        self.data.setdefault(name, {})
+
+    def _handle_cluster(self, attrs):
+        name = attrs['NAME']
+
+        self.current['cluster'] = name
+
+        # if cluster doesn't match regexp, set skip
+        if self._set_skip('cluster', name): return
+
+        # skip node if GRID set to skip
+        if self._check_skip('grid'): return
+
+        self.data[self.current['grid']].setdefault(name, {})
+
+    def _handle_host(self, attrs):
+        name = attrs['NAME']
+        self.current['host'] = name
+
+        # if host doesn't match regexp, set skip
+        if self._set_skip('host', name): return
+
+        # skip node if GRID or CLUSTER set to skip
+        if self._check_skip('grid'): return 
+        if self._check_skip('cluster'): return
+        
+        self.data[self.current['grid']][self.current['cluster']].setdefault(name, {})
+
+    def _handle_metric(self, attrs):
+        name = attrs['NAME']
+
+        # skip node if GRID, CLUSTER, or HOST set to skip
+        if self._check_skip('grid'): return 
+        if self._check_skip('cluster'): return
+        if self._check_skip('host'): return
+
+        metric_data = { 
+            'name': attrs['VAL'], 
+            'units': attrs['UNITS'], 
+            'type': attrs['TYPE']
+        } 
+
+        self.data[self.current['grid']][self.current['cluster']]\
+                 [self.current['host']][name] = metric_data
+
+    def _handle_grid_end(self):
+        self.current['grid'] = None
+        self.skip['grid'] = None
+
+    def _handle_cluster_end(self):
+        self.current['cluster'] = None
+        self.skip['cluster'] = None
+
+    def _handle_host_end(self):
+        self.current['host'] = None
+        self.skip['host'] = None
+
+    def _handle_metric_end(self):
+        pass
+
     def startElement(self, name, attrs):
-        print name
         print self.current
-        # name of entity, if it has one -- valid for GRID, CLUSTER, HOST, METRIC
-        val = attrs.get('NAME', None)
 
         if name == "GRID":
-            self.current['grid'] = val
-
-            # if grid doesn't match regexp, set skip
-            if self._set_skip('grid', val): return
-
-            self.data.setdefault(val, {})
-
+            self._handle_grid(attrs)
         elif name == "CLUSTER":
-            self.current['cluster'] = val
-
-            # if cluster doesn't match regexp, set skip
-            if self._set_skip('cluster', val): return
-
-            # skip node if GRID set to skip
-            if self._check_skip('grid'): return
-
-            self.data[self.current['grid']].setdefault(val, {})
-
+            self._handle_cluster(attrs)
         elif name == "HOST":
-            self.current['host'] = val
-
-            # if host doesn't match regexp, set skip
-            if self._set_skip('host', val): return
-
-            # skip node if GRID or CLUSTER set to skip
-            if self._check_skip('grid'): return 
-            if self._check_skip('cluster'): return
-            
-            self.data[self.current['grid']][self.current['cluster']].setdefault(val, {})
-
+            self._handle_host(attrs)
         elif name == "METRIC":
-            # skip node if GRID, CLUSTER, or HOST set to skip
-            if self._check_skip('grid'): return 
-            if self._check_skip('cluster'): return
-            if self._check_skip('host'): return
-
-            metric_data = { 
-                'value': attrs['VAL'], 
-                'units': attrs['UNITS'], 
-                'type': attrs['TYPE']
-            } 
-
-            self.data[self.current['grid']][self.current['cluster']]\
-                     [self.current['host']][val] = metric_data
-
+            self._handle_metric(attrs)
         else: return # ignore everything else
 
     def endElement(self, name):
         
         if name == "GRID":
-            self.current['grid'] = None
-            self.skip['grid'] = None
+            self._handle_grid_end()
         elif name == "CLUSTER":
-            self.current['cluster'] = None
-            self.skip['cluster'] = None
+            self._handle_cluster_end()
         elif name == "HOST":
-            self.current['host'] = None
-            self.skip['host'] = None
+            self._handle_host_end()
+        elif name == "METRIC":
+            self._handle_metric_end()
 
         else: return # ignore everything else
 
