@@ -9,6 +9,7 @@ from pprint import pprint
 
 # Gmetad settings
 DEFAULT_GMETAD_PORT = 8651
+DEFAULT_GMETAD_INT_PORT = 8652
 
 # For alert condition expressions
 COMPARATORS = [ '==', '>=', '<=', '<', '>' ]
@@ -21,23 +22,56 @@ _STR_RE_KEY = "\w+"
 _STR_RE_EXPRESSION = "^" + _STR_RE_KEY + _STR_RE_OPERATOR + _STR_RE_VAL + "$"
 _RE_EXPRESSION = re.compile(_STR_RE_EXPRESSION)
 
-def _generate_raw_data(host='localhost', port=DEFAULT_GMETAD_PORT):
-    """
-    Connect to ``(host, port)`` and stream any data. Break if received data is ever
-    empty (signalling EOF).
-    """
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((host, port))
+class GangliaMetaDaemon(object):
+    def __init__(self, host='localhost', port=DEFAULT_GMETAD_PORT, interactive_port=DEFAULT_GMETAD_INT_PORT,
+                       connect=True):
+        self.host = host
+        self.port = port
+        self.interactive_port = interactive_port
+        self._sock = None
+        self._int_sock = None
 
-    recv = "dummy data"
-    while recv:
-        recv = s.recv(512)
-        if recv:
-            yield recv
+        if connect:
+            self.connect()
 
-    # tear down the socket
-    s.shutdown(socket.SHUT_RDWR)
-    s.close()
+    def __del__(self):
+        self._int_sock.shutdown(socket.SHUT_RDWR)
+        self._int_sock.close()
+        self._sock.shutdown(socket.SHUT_RDWR)
+        self._sock.close()
+
+    def connect(self):
+        self._sock = self._connect(self.port)
+        self._int_sock = self._connect(self.interactive_port)
+
+    def _connect(self, port):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((self.host, port))
+        return s
+
+    def _stream_data(self, sock, bufsize=512):
+        while True:
+            recv = sock.recv(bufsize)
+            if recv:
+                yield recv
+            else:
+                break
+
+    def _query(self, path):
+        self._int_sock.send(path)
+        return self._stream_data(self._int_sock)
+
+    def query_cluster(self, cluster):
+        return self._query("/" + cluster)
+
+    def query_host(self, cluster, host):
+        return self._query("/%s/%s" % (cluster, host))
+        
+    def query_cluster_summary(self, cluster):
+        return self._query("/%s?filter=summary" % cluster)
+
+    def query(self):
+        return self._stream_data(self._sock)
 
 class BooleanTree(object):
 
@@ -308,8 +342,10 @@ if __name__ == '__main__':
     parser = sax.make_parser()
     handler = GangliaContentHandler(datastore, **kwargs)
     parser.setContentHandler(handler)
+
+    gmetad = GangliaMetaDaemon()
     
-    for chunk in _generate_raw_data():
+    for chunk in gmetad.query():
         parser.feed(chunk)
 
     pprint(datastore)
