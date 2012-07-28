@@ -81,15 +81,17 @@ class BooleanTree(object):
     def evaluate_node(self, node):
         raise NotImplementedError
 
-    def is_boolean_tree(self, tree):
+    @classmethod
+    def is_boolean_tree(cls, tree):
         """
         Decide if ``tree`` (a list) is a valid boolean expression tree. These checks
         simply validate the general structure of ``tree``.
         """
-        return isinstance(tree, list) and tree[0] in self.OPERATORS and \
+        return isinstance(tree, list) and tree[0] in cls.OPERATORS and \
                len(tree) >= 2
 
-    def is_valid_node(self, node):
+    @classmethod
+    def is_valid_node(cls, node):
         raise NotImplementedError
 
 class GangliaBooleanTree(BooleanTree):
@@ -97,7 +99,8 @@ class GangliaBooleanTree(BooleanTree):
         import random
         return random.choice([True, False])
 
-    def is_valid_node(self, node):
+    @classmethod
+    def is_valid_node(cls, node):
         """
         Validate that ``node`` is a valid metric expression.
     
