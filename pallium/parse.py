@@ -58,7 +58,7 @@ class GangliaContentHandler(sax.ContentHandler):
         self.handle_grid(attrs)
 
     def handle_grid(self, attrs):
-        self.data.setdefault(attrs['NAME'], {})
+        pass
 
     def _handle_cluster(self, attrs):
         name = attrs['NAME']
@@ -74,7 +74,7 @@ class GangliaContentHandler(sax.ContentHandler):
         self.handle_cluster(attrs)
 
     def handle_cluster(self, attrs):
-        self.data[self.current['grid']].setdefault(attrs['NAME'], {})
+        pass
 
     def _handle_host(self, attrs):
         name = attrs['NAME']
@@ -90,7 +90,7 @@ class GangliaContentHandler(sax.ContentHandler):
         self.handle_host(attrs)
 
     def handle_host(self, attrs):
-        self.data[self.current['grid']][self.current['cluster']].setdefault(attrs['NAME'], {})
+        pass
 
     def _handle_metric(self, attrs):
         name = attrs['NAME']
@@ -103,15 +103,7 @@ class GangliaContentHandler(sax.ContentHandler):
         self.handle_metric(attrs)
 
     def handle_metric(self, attrs):
-
-        metric_data = { 
-            'name': attrs['VAL'], 
-            'units': attrs['UNITS'], 
-            'type': attrs['TYPE']
-        } 
-
-        self.data[self.current['grid']][self.current['cluster']]\
-                 [self.current['host']][name] = metric_data
+        pass
 
     def _handle_grid_end(self):
         self.current['grid'] = None
