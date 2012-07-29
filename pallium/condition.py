@@ -111,6 +111,13 @@ class BooleanTree(object):
         raise NotImplementedError
 
 class GangliaBooleanTree(BooleanTree):
+    def __init__(self, data):
+        self.host_data = data
+
+    def _lookup_metric_value(self, metric):
+        value = self.host_data.get('metric', None)
+        return value
+
     def _apply_comparison(self, comparison, actual, expected):
         comp_func = COMPARATORS.get(comparison, None)
 
@@ -120,8 +127,17 @@ class GangliaBooleanTree(BooleanTree):
         return comp_func(actual, expected)
 
     def evaluate_node(self, node):
-        import random
-        return random.choice([True, False])
+        metric, comp, expected = parse_metric_expr(node)
+
+        if metric == None:
+            raise Exception # invalid metric expression
+
+        actual = self._lookup_metric_value(metric)
+
+        if actual is None:
+            raise Exception # invalid metric name
+
+        return self._apply_comparison(comp, actual, expected)
 
     @classmethod
     def is_valid_node(cls, node):
