@@ -1,5 +1,22 @@
 import xml.sax as sax
 import re
+from pallium.ganglia import GangliaMetaDaemon
+
+def gmetad_feeder(parser):
+    gmetad = GangliaMetaDaemon()
+    
+    for chunk in gmetad.query():
+        parser.feed(chunk)
+
+def file_feeder(parser, filename):
+    for line in open(filename):
+        parser.feed(line)
+
+def parse_feed(handler, feeder):
+    parser = sax.make_parser()
+    parser.setContentHandler(handler)
+    feeder(parser)
+    return parser
 
 class GangliaContentHandler(sax.ContentHandler):
     """
@@ -145,9 +162,9 @@ class LoadingGangliaContentHandler(GangliaContentHandler):
           }
         }
     """
-    def __init__(self, **kwargs):
+    def __init__(self):
         self.data = {}
-        GangliaContentHandler.__init__(self, **kwargs)
+        GangliaContentHandler.__init__(self)
     
     def handle_grid(self, attrs):
         self.data.setdefault(attrs['NAME'], {})
@@ -170,9 +187,10 @@ class LoadingGangliaContentHandler(GangliaContentHandler):
                  [self.current['host']][attrs['NAME']] = metric_data
 
 class AlertingGangliaContentHandler(GangliaContentHandler):
-    def __init__(self, **kwargs):
+    def __init__(self, alerts):
+        self.alerts = alerts
         self.data = {}
-        GangliaContentHandler.__init__(self, **kwargs)
+        GangliaContentHandler.__init__(self)
     
     def handle_grid(self, attrs):
         pass
