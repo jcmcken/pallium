@@ -1,8 +1,8 @@
 
 import re
 from pallium.condition import GangliaBooleanTree
-from pallium.config import load_json_config
-from pallium.util import SuperDict
+from pallium.config import load_json_config, _STR_RE_VALID_TAG, valid_tag
+from pallium.util import SuperDict, files_from_dir
 
 DEFAULT_ALERT = {
   "name": None,
@@ -52,6 +52,12 @@ class BaseAlert(SuperDict):
             if not self.get(key, None):
                 raise InvalidAlert("key '%s' is not set in alert '%s'" % \
                     (key, self))
+        name = self.get('name')
+
+        # must have a valid tag name
+        if not valid_tag(name):
+            raise ValueError("invalid alert name '%s', must match regex '%s'" % \
+                (name, _STR_RE_VALID_TAG))
         self._validate_rule(self['rule'])
 
     def _validate_rule(self, rule):
@@ -96,3 +102,18 @@ class Metalert(BaseAlert):
 
 class JsonMetalert(AlertJsonLoader, Metalert): pass
 class DictMetalert(AlertDictLoader, Metalert): pass
+
+def load_alerts(directory, alert_cls):
+    files = files_from_dir(directory)
+    store = {}
+    for file in files:
+        alert = dict(alert_cls(file))
+        name = alert['name']
+        if name in store:
+            raise Exception # duplicate alert name
+        store[name] = alert
+        del store[name]['name'] 
+
+    return store
+        
+

@@ -1,15 +1,15 @@
 {
-  "name": "Test Alert 1",
+  "name": "test_alert_1",
   "description": "Lorem ipsum",
   "filter": {
     "grid": ".*",
     "cluster": ".*",
-    "host": ".*",
+    "host": ".*"
   },
   "options": {
     "threshhold": 5,
     "priority": "high",
-    "grouped": false,
+    "grouped": false
   },
   "rule": [ 
     "or", 

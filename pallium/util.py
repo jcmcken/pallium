@@ -1,3 +1,5 @@
+import os
+
 def _recursive_update(d, u):
     """
     Yanked from ``http://stackoverflow.com/questions/3232943/``
