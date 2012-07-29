@@ -8,8 +8,9 @@ import re
 import socket
 from copy import deepcopy
 
-_STR_RE_VALID_TAG = "^[A-Za-z0-9_\-]+$"
-_RE_VALID_TAG = re.compile(_STR_RE_VALID_TAG)
+_STR_RE_VALID_TAG = "[A-Za-z0-9_\-]+"
+_STR_RE_VALID_TAG_COMPLETE = "^%s$" % _STR_RE_VALID_TAG
+_RE_VALID_TAG = re.compile(_STR_RE_VALID_TAG_COMPLETE)
 
 DEFAULT_CONFIG_FILE = "/etc/pallium/config.json"
 
