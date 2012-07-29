@@ -1,6 +1,9 @@
 
 from pallium.alerts import DictAlert, DEFAULT_ALERT, InvalidAlert, \
                            DEFAULT_METALERT, DictMetalert
+from pallium.config import load_json_config
+from tests import ALERT_DIR
+import os
 
 ALERT_BLANK_RULE = {
   "name": "alert_blank_rule",
@@ -19,6 +22,10 @@ METALERT_BLANK_RULE = {
 
 METALERT_GOOD_RULE = METALERT_BLANK_RULE.copy()
 METALERT_GOOD_RULE["rule"] = [ "or", "blah==1", "bar==2" ]
+
+def test_fixture_alert_dir():
+    print ALERT_DIR
+    assert os.path.isdir(ALERT_DIR)
 
 def test_default_alert_is_bad():
     try:
