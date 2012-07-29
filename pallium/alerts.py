@@ -33,46 +33,46 @@ DEFAULT_METALERT = {
 class InvalidAlert(AttributeError): pass
 
 class BaseAlert(SuperDict):
-    REQUIRED_SETTINGS = []
+    required_settings = []
+    default = {}
 
     def __init__(self, data):
-        SuperDict.__init__(self, DEFAULT_ALERT)
+        SuperDict.__init__(self, self.default)
 
         self._load_config(data)
 
     def _load_config(self, data):
         data = self.load_config(data)
-        self._validate_alert(data)
-        data = self._convert_data(data)
-
         self.recursive_update(data)
+        self._validate_alert()
+        self._convert_data()
 
-    def _validate_alert(self, data):
-        for key in self.REQUIRED_SETTINGS:
-            if not data.get(key, None):
+    def _validate_alert(self):
+        for key in self.required_settings:
+            if not self.get(key, None):
                 raise InvalidAlert("key '%s' is not set in alert '%s'" % \
-                    (key, data))
-        self._validate_rule(data['rule'])
+                    (key, self))
+        self._validate_rule(self['rule'])
 
     def _validate_rule(self, rule):
         if not GangliaBooleanTree.is_boolean_tree(rule):
             raise InvalidAlert(
-                "the alert rule in '%s' must be a boolean tree" % self.data
+                "the alert rule in '%s' must be a boolean tree" % self
             )
        
-    def _convert_data(self, data):
-        return data
+    def _convert_data(self):
+        pass
 
     def load_config(self, data):
         raise NotImplementedError
 
 class Alert(BaseAlert):
-    REQUIRED_SETTINGS = [ "name", "description" ]
+    required_settings = [ "name", "description" ]
+    default = DEFAULT_ALERT
        
-    def _convert_data(self, data):
+    def _convert_data(self):
         for key in [ "grid", "cluster", "host" ]:
-            data["filter"][key] = re.compile(data["filter"][key])
-        return data
+            self["filter"][key] = re.compile(self["filter"][key])
 
     def load_config(self, data):
         raise NotImplementedError
