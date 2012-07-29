@@ -136,8 +136,6 @@ class GangliaContentHandler(sax.ContentHandler):
         pass
 
     def startElement(self, name, attrs):
-        print self.current
-
         if name == "GRID":
             self._handle_grid(attrs)
         elif name == "CLUSTER":
