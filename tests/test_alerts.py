@@ -1,6 +1,6 @@
 
 from pallium.alerts import DictAlert, DEFAULT_ALERT, InvalidAlert, \
-                           DEFAULT_METALERT
+                           DEFAULT_METALERT, DictMetalert
 
 ALERT_BLANK_RULE = {
   "name": "alert_blank_rule",
@@ -41,7 +41,7 @@ def test_ok_rule():
 
 def test_default_metalert_is_bad():
     try:
-        DictAlert(DEFAULT_METALERT)
+        DictMetalert(DEFAULT_METALERT)
     except InvalidAlert, e:
         assert "key 'name' is not set" in e.args[0]
         return
@@ -49,11 +49,11 @@ def test_default_metalert_is_bad():
 
 def test_blank_rule_metalert():
     try:
-        DictAlert(METALERT_BLANK_RULE)
+        DictMetalert(METALERT_BLANK_RULE)
     except InvalidAlert, e:
         assert "must be a boolean tree" in e.args[0]
         return
     assert False
 
 def test_meta_ok_rule():
-    DictAlert(METALERT_GOOD_RULE)
+    DictMetalert(METALERT_GOOD_RULE)
