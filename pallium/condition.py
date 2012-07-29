@@ -77,7 +77,7 @@ class BooleanTree(object):
         for operand in operands:
             if self.is_boolean_tree(operand):
                 result = self.walk(operand)
-            elif is_valid_node(operand):
+            elif self.is_valid_node(operand):
                 result = self.evaluate_node(operand)
             else:
                 raise Exception# not a metric expr or a boolean tree
@@ -90,7 +90,7 @@ class BooleanTree(object):
         Apply either an ``and`` operation or an ``or`` operation to the list of 
         booleans in ``items``.
         """
-        op_func = self.OPERATORS.get(op, None)
+        op_func = self.OPERATORS.get(operator, None)
 
         if op_func is None:
             raise Exception #invalid op
@@ -118,7 +118,7 @@ class GangliaBooleanTree(BooleanTree):
         self.host_data = data
 
     def _lookup_metric_value(self, metric):
-        value = self.host_data.get('metric', None)
+        value = self.host_data.get(metric, None)
         return value
 
     def _apply_comparison(self, comparison, actual, expected):
