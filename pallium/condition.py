@@ -1,11 +1,18 @@
 import re
 
 # For alert condition expressions
-COMPARATORS = [ '==', '>=', '<=', '<', '>' ]
+COMPARATORS = {
+  '==': lambda x,y: x == y,
+  '>=': lambda x,y: x >= y,
+  '<=': lambda x,y: x <= y,
+  '<': lambda x,y: x < y,
+  '>': lambda x,y: x > y,
+  '!=': lambda x,y: x != y,
+}
 
 # Regexs for validating a metric expression
 _OP_LIST = "|".join(["(%s)"] * len(COMPARATORS))
-_STR_RE_OPERATOR = "(" + _OP_LIST % tuple(COMPARATORS) + ")"
+_STR_RE_OPERATOR = "(" + _OP_LIST % tuple(COMPARATORS.keys()) + ")"
 _STR_RE_VAL = "[\w\.]+"
 _STR_RE_KEY = "\w+"
 _STR_RE_EXPRESSION = "^" + _STR_RE_KEY + _STR_RE_OPERATOR + _STR_RE_VAL + "$"
@@ -95,6 +102,14 @@ class BooleanTree(object):
         raise NotImplementedError
 
 class GangliaBooleanTree(BooleanTree):
+    def _apply_comparison(self, comparison, actual, expected):
+        comp_func = COMPARATORS.get(comparison, None)
+
+        if comp_func is None:
+            raise Exception #invalid comparator
+
+        return comp_func(actual, expected)
+
     def evaluate_node(self, node):
         import random
         return random.choice([True, False])
