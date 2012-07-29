@@ -1,0 +1,18 @@
+{
+  "name": "test_metalert_1",
+  "description": "Lorem ipsum",
+  "options": {
+    "threshhold": 5,
+    "priority": "high",
+  },
+  "rule": [ 
+    "or", 
+      "some_alert1",
+      [ "and", 
+          "some_alert2",
+          "some_alert14",
+          "some_alert27"
+      ]
+  ]
+}
+

@@ -1,0 +1,24 @@
+{
+  "name": "Test Alert 1",
+  "description": "Lorem ipsum",
+  "filter": {
+    "grid": ".*",
+    "cluster": ".*",
+    "host": ".*",
+  },
+  "options": {
+    "threshhold": 5,
+    "priority": "high",
+    "grouped": false,
+  },
+  "rule": [ 
+    "or", 
+      "some_metric>=10",
+      [ "and", 
+          "some_metric2==bleh",
+          "some_metric3<=432",
+          "some_metric4==4.0"
+      ]
+  ]
+}
+
