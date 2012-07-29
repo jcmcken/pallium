@@ -32,31 +32,6 @@ class GangliaContentHandler(sax.ContentHandler):
 
         sax.ContentHandler.__init__(self)
 
-    def _eval_re(self, type, text):
-        pat = self.exprs.get(type, None)
-
-        if pat is None:
-            raise ValueError("Invalid regular expression type '%s" % type)
-
-        return bool(pat.search(text))
-
-    def _check_skip(self, type):
-        skip = self.skip.get(type, None)
-        current = self.current.get(type, None)
-
-        if skip is None or current is None:
-            ret = False
-        else:
-            ret = skip == current
-
-        return ret
-
-    def _set_skip(self, type, value):
-        if not self._eval_re(type, value):
-            self.skip[type] = value
-            return True
-        return False
-
     def _handle_grid(self, attrs):
         name = attrs['NAME']
         self.current['grid'] = name
