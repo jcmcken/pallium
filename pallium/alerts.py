@@ -2,27 +2,55 @@
 import re
 from pallium.condition import GangliaBooleanTree
 from pallium.config import load_json_config
+from pallium.util import SuperDict
 
 DEFAULT_ALERT = {
-  "grid": ".*",
-  "cluster": ".*",
-  "host": ".*",
+  "name": None,
+  "description": None,
+  "options": {
+    "threshold": 1,
+    "priority": "low",
+    "grouped": False
+  },
+  "filter": {
+    "grid": ".*",
+    "cluster": ".*",
+    "host": ".*",
+  },
+  "rule": [],
+}
+
+DEFAULT_METALERT = {
+  "name": None,
+  "description": None,
+  "options": {
+    "threshold": 1,
+    "priority": "low",
+  },
+  "rule": [],
 }
 
 class InvalidAlert(AttributeError): pass
 
-class Alert(dict):
+class Alert(SuperDict):
+    REQUIRED_SETTINGS = [ "name", "description" ]
+
     def __init__(self, filename):
         self.filename = filename
 
-        data = self._load_config(self.filename)
+        SuperDict.__init__(self, DEFAULT_ALERT)
+
+        self._load_config(self.filename)
+
+    def _load_config(self, filename):
+        data = self.load_config(self.filename)
         self._validate_alert(data)
         data = self._convert_data(data)
 
-        dict.__init__(self, data)
-        
+        self.recursive_update(data)
+
     def _validate_alert(self, data):
-        for key in [ "name", "description", "grid", "cluster", "host", "rule" ]:
+        for key in self.REQUIRED_SETTINGS:
             if not data.get(key, None):
                 raise InvalidAlert("key '%s' is not set in alert '%s'" % \
                     (key, self.filename))
@@ -39,11 +67,11 @@ class Alert(dict):
             data[key] = re.compile(data[key])
         return data
 
-    def _load_config(self, filename):
+    def load_config(self, filename):
         raise NotImplementedError
 
 class JsonAlert(Alert):
-    def _load_config(self, filename):
+    def load_config(self, filename):
         return load_json_config(filename)
 
 def load_alerts(directory, alert_cls=JsonAlert):
