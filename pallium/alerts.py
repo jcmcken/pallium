@@ -104,6 +104,22 @@ class JsonMetalert(AlertJsonLoader, Metalert): pass
 class DictMetalert(AlertDictLoader, Metalert): pass
 
 def load_alerts(directory, alert_cls):
+    """
+    Loads alerts into a dictionary datastore of the form::
+
+        {
+          "alert_name1": {
+            ... alert structure ...
+          },
+          "alert_name2": {
+            ... alert structure ...
+          },
+          ...
+        }
+
+    The alert 'name' is extracted from the alert structure and used as 
+    the key. Alert names must be unique
+    """
     files = files_from_dir(directory)
     store = {}
     for file in files:
