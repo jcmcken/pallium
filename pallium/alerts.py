@@ -96,18 +96,3 @@ class Metalert(BaseAlert):
 
 class JsonMetalert(AlertJsonLoader, Metalert): pass
 class DictMetalert(AlertDictLoader, Metalert): pass
-
-def load_alerts(directory, alert_cls=JsonAlert):
-    alerts = []
-    for filename in os.listdir(directory):
-        fullname = os.path.join(os.path.abspath(directory), filename)
-        # resolve links
-        if os.path.islink(fullname):
-            fullname = os.readlink(fullname)
-        # skip non-files
-        if not os.path.isfile(fullname):
-            continue
-
-        alert = alert_cls(fullname)
-        alerts.append(alert)
-    return alerts

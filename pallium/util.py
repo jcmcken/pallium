@@ -15,3 +15,17 @@ def _recursive_update(d, u):
 class SuperDict(dict):
     def recursive_update(self, updated):
         self = SuperDict(_recursive_update(self, updated))
+
+def files_from_dir(directory):
+    files = []
+    for filename in os.listdir(directory):
+        fullname = os.path.join(os.path.abspath(directory), filename)
+        # resolve links
+        if os.path.islink(fullname):
+            fullname = os.readlink(fullname)
+        # skip non-files
+        if not os.path.isfile(fullname):
+            continue
+
+        files.append(fullname)
+    return files
