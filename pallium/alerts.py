@@ -74,6 +74,8 @@ class JsonAlert(Alert):
 
 class DictAlert(Alert):
     def load_config(self, data):
+        if not isinstance(data, dict):
+            raise InvalidAlert("invalid data type for alert '%s'" % data)
         return data
 
 def load_alerts(directory, alert_cls=JsonAlert):
