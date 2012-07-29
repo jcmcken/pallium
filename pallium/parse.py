@@ -1,6 +1,7 @@
 import xml.sax as sax
 import re
 from pallium.ganglia import GangliaMetaDaemon
+from pallium.condition import GangliaBooleanTree
 
 def gmetad_feeder(parser):
     gmetad = GangliaMetaDaemon()
@@ -163,18 +164,80 @@ class LoadingGangliaContentHandler(GangliaContentHandler):
 
 class AlertingGangliaContentHandler(GangliaContentHandler):
     def __init__(self, alerts):
+        # alert dict from ``pallium.alerts.load_alerts``
         self.alerts = alerts
-        self.data = {}
+
+        # each alert should keep track of what it's skipping here
+        self.skip = {}
+
+        # Keep track of metrics for the host currently being parsed.
+        # Structure is of the form {"metric_name":"metric_val", ... }
+        self.current_host_data = {}
+ 
+        """
+        Keep track of alert hits.
+
+        Structure is of the form::
+
+            {
+              "alert_name1": [ "matching_host1", "matching_host2", ... ],
+              "alert_name2": [ ... ],
+              ...
+            }
+
+        """
+        self.alert_results = {}
+
         GangliaContentHandler.__init__(self)
     
     def handle_grid(self, attrs):
-        pass
+        name = attrs['NAME']
+
+        for alert_name, alert_data in self.alerts.iteritems():
+            self.skip.setdefault(alert_name, {})
+            if not bool(alert_data['filter']['grid'].search(name)):
+                self.skip[alert_name].setdefault('grid', name)
     
     def handle_cluster(self, attrs):
-        pass
+        name = attrs['NAME']
+
+        for alert_name, alert_data in self.alerts.iteritems():
+            if not bool(alert_data['filter']['cluster'].search(name)):
+                self.skip[alert_name].setdefault('cluster', name)
     
     def handle_host(self, attrs):
-        pass
+        name = attrs['NAME']
+
+        for alert_name, alert_data in self.alerts.iteritems():
+            if not bool(alert_data['filter']['host'].search(name)):
+                self.skip[alert_name].setdefault('host', name)
     
     def handle_metric(self, attrs):
-        pass
+        name = attrs['NAME']
+        val = attrs['VAL']
+        
+        # store the data for this metric
+        self.current_host_data[name] = val
+
+    def handle_host_end(self):
+        tree = GangliaBooleanTree(self.current_host_data)
+
+        for alert_name, alert_data in self.alerts.iteritems():
+
+            # if alert is set to skip, don't evaluate it
+            if self.skip[alert_name].get('grid') == self.current['grid'] or \
+               self.skip[alert_name].get('cluster') == self.current['cluster'] or \
+               self.skip[alert_name].get('host') == self.current['host']:
+                continue
+
+            # evaluate the alert rule against metrics from the host that was just parsed
+            result = tree.walk(alert_data['rule'])
+
+            # if ``result`` is ``True``, the alert has a hit
+            if result is True:
+                self.alert_results.setdefault(alert_name, [])
+                self.alert_results[alert_name].append(self.current['host'])
+
+        # reset current host data
+        self.current_host_data = {}
+
