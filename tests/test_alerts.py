@@ -81,6 +81,11 @@ def test_invalid_alert_name():
 
 def test_alert_load():
     alerts = load_alerts(ALERT_DIR, alert_cls=JsonAlert)
+    # should be a dict
     assert isinstance(alerts, dict)
+    # should be data in the dict
     assert bool(alerts) is True
+    # validate that 'name' was successfully extracted
+    assert [ v.get('name') for k,v in alerts.iteritems() ] == \
+           [ None ] * len(alerts)
 
