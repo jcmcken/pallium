@@ -77,25 +77,25 @@ class Alert(BaseAlert):
     def load_config(self, data):
         raise NotImplementedError
 
-class JsonAlert(Alert):
+class AlertJsonLoader(object):
     def load_config(self, data):
         return load_json_config(data)
 
-class DictAlert(Alert):
+class AlertDictLoader(object):
     def load_config(self, data):
         if not isinstance(data, dict):
             raise InvalidAlert("invalid data type for alert '%s'" % data)
         return data
 
+class JsonAlert(AlertJsonLoader, Alert): pass
+class DictAlert(AlertDictLoader, Alert): pass
+
 class Metalert(BaseAlert):
     required_settings = [ "name", "description" ]
     default = DEFAULT_METALERT
 
-class JsonMetalert(Metalert):
-    load_config = JsonAlert.load_config
-
-class DictMetalert(Metalert):
-    load_config = DictAlert.load_config
+class JsonMetalert(AlertJsonLoader, Metalert): pass
+class DictMetalert(AlertDictLoader, Metalert): pass
 
 def load_alerts(directory, alert_cls=JsonAlert):
     alerts = []
