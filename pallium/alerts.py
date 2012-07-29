@@ -32,8 +32,8 @@ DEFAULT_METALERT = {
 
 class InvalidAlert(AttributeError): pass
 
-class Alert(SuperDict):
-    REQUIRED_SETTINGS = [ "name", "description" ]
+class BaseAlert(SuperDict):
+    REQUIRED_SETTINGS = []
 
     def __init__(self, data):
         SuperDict.__init__(self, DEFAULT_ALERT)
@@ -51,7 +51,7 @@ class Alert(SuperDict):
         for key in self.REQUIRED_SETTINGS:
             if not data.get(key, None):
                 raise InvalidAlert("key '%s' is not set in alert '%s'" % \
-                    (key, self.data))
+                    (key, data))
         self._validate_rule(data['rule'])
 
     def _validate_rule(self, rule):
@@ -59,6 +59,15 @@ class Alert(SuperDict):
             raise InvalidAlert(
                 "the alert rule in '%s' must be a boolean tree" % self.data
             )
+       
+    def _convert_data(self, data):
+        return data
+
+    def load_config(self, data):
+        raise NotImplementedError
+
+class Alert(BaseAlert):
+    REQUIRED_SETTINGS = [ "name", "description" ]
        
     def _convert_data(self, data):
         for key in [ "grid", "cluster", "host" ]:
