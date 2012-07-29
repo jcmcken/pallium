@@ -1,5 +1,8 @@
 import re
 from pallium.config import _STR_RE_VALID_TAG
+import logging
+
+LOG = logging.getLogger(__name__)
 
 # For alert condition expressions
 COMPARATORS = {
@@ -135,7 +138,8 @@ class GangliaBooleanTree(BooleanTree):
         actual = self._lookup_metric_value(metric)
 
         if actual is None:
-            raise Exception # invalid metric name
+            LOG.warn("'%s' is an invalid metric for this host" % metric)
+            return False
 
         return self._apply_comparison(comp, actual, expected)
 
