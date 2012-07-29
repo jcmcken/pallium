@@ -67,22 +67,22 @@ class GangliaContentHandler(sax.ContentHandler):
         pass
 
     def _handle_grid_end(self):
-        self.current['grid'] = None
         self.handle_grid_end()
+        self.current['grid'] = None
 
     def handle_grid_end(self):
         pass
 
     def _handle_cluster_end(self):
-        self.current['cluster'] = None
         self.handle_cluster_end()
+        self.current['cluster'] = None
 
     def handle_cluster_end(self):
         pass
 
     def _handle_host_end(self):
-        self.current['host'] = None
         self.handle_host_end()
+        self.current['host'] = None
 
     def handle_host_end(self):
         pass
