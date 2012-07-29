@@ -62,7 +62,7 @@ class Alert(SuperDict):
        
     def _convert_data(self, data):
         for key in [ "grid", "cluster", "host" ]:
-            data[key] = re.compile(data[key])
+            data["filter"][key] = re.compile(data["filter"][key])
         return data
 
     def load_config(self, data):
