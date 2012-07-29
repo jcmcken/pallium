@@ -87,8 +87,8 @@ class BooleanTree(object):
         Decide if ``tree`` (a list) is a valid boolean expression tree. These checks
         simply validate the general structure of ``tree``.
         """
-        return isinstance(tree, list) and tree[0] in cls.OPERATORS and \
-               len(tree) >= 2
+        return len(tree) >= 2 and isinstance(tree, list) and \
+               tree[0] in cls.OPERATORS
 
     @classmethod
     def is_valid_node(cls, node):
