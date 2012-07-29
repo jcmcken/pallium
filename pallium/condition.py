@@ -1,4 +1,5 @@
 import re
+from pallium.config import _STR_RE_VALID_TAG
 
 # For alert condition expressions
 COMPARATORS = {
@@ -12,11 +13,19 @@ COMPARATORS = {
 
 # Regexs for validating a metric expression
 _OP_LIST = "|".join(["(%s)"] * len(COMPARATORS))
-_STR_RE_OPERATOR = "(" + _OP_LIST % tuple(COMPARATORS.keys()) + ")"
-_STR_RE_VAL = "[\w\.]+"
-_STR_RE_KEY = "\w+"
+_STR_RE_OPERATOR = "(?P<comparator>%s)" % ("(" + _OP_LIST % tuple(COMPARATORS.keys()) + ")")
+_STR_RE_VAL = "(?P<expected>%s)" % "[\w\.]+"
+_STR_RE_KEY = "(?P<metric>%s)" % _STR_RE_VALID_TAG
 _STR_RE_EXPRESSION = "^" + _STR_RE_KEY + _STR_RE_OPERATOR + _STR_RE_VAL + "$"
 _RE_EXPRESSION = re.compile(_STR_RE_EXPRESSION)
+
+def parse_metric_expr(expr):
+    match = _RE_EXPRESSION.match(expr)
+
+    if not match:
+        return None, None, None
+
+    return map(match.group, ['metric', 'comparator', 'expected'])
 
 class BooleanTree(object):
 
