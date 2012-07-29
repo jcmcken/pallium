@@ -87,6 +87,16 @@ class DictAlert(Alert):
             raise InvalidAlert("invalid data type for alert '%s'" % data)
         return data
 
+class Metalert(BaseAlert):
+    required_settings = [ "name", "description" ]
+    default = DEFAULT_METALERT
+
+class JsonMetalert(Metalert):
+    load_config = JsonAlert.load_config
+
+class DictMetalert(Metalert):
+    load_config = DictAlert.load_config
+
 def load_alerts(directory, alert_cls=JsonAlert):
     alerts = []
     for filename in os.listdir(directory):
