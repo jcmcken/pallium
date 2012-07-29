@@ -4,7 +4,7 @@ from pallium.alerts import (
     load_alerts, JsonAlert
 )
 from pallium.config import load_json_config
-from tests import ALERT_DIR
+from tests import FAKE_ALERTS_DIR
 import os
 
 ALERT_BLANK_RULE = {
@@ -30,8 +30,8 @@ METALERT_GOOD_RULE = METALERT_BLANK_RULE.copy()
 METALERT_GOOD_RULE["rule"] = [ "or", "blah==1", "bar==2" ]
 
 def test_fixture_alert_dir():
-    print ALERT_DIR
-    assert os.path.isdir(ALERT_DIR)
+    print FAKE_ALERTS_DIR
+    assert os.path.isdir(FAKE_ALERTS_DIR)
 
 def test_default_alert_is_bad():
     try:
@@ -80,7 +80,7 @@ def test_invalid_alert_name():
     assert False
 
 def test_alert_load():
-    alerts = load_alerts(ALERT_DIR, alert_cls=JsonAlert)
+    alerts = load_alerts(FAKE_ALERTS_DIR, alert_cls=JsonAlert)
     # should be a dict
     assert isinstance(alerts, dict)
     # should be data in the dict
